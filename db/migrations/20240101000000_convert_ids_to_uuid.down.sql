@@ -1,0 +1,7 @@
+ALTER TABLE users MODIFY id VARCHAR(100) NOT NULL;
+
+ALTER TABLE contacts MODIFY id VARCHAR(100) NOT NULL,
+                     MODIFY user_id VARCHAR(100) NOT NULL;
+
+ALTER TABLE addresses MODIFY id VARCHAR(100) NOT NULL,
+                      MODIFY contact_id VARCHAR(100) NOT NULL;

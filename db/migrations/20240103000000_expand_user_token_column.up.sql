@@ -1,0 +1,1 @@
+ALTER TABLE users MODIFY token VARCHAR(500);
