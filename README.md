@@ -1,81 +1,123 @@
-# Golang Clean Architecture Template
+# Golang Clean Architecture
 
-## Description
+A Go backend application following Clean Architecture principles with HTTP API (Fiber) and event-driven worker (Kafka).
 
-This is golang clean architecture template.
+## Layers
 
-## Architecture
-
-![Clean Architecture](architecture.png)
-
-1. External system perform request (HTTP, gRPC, Messaging, etc)
-2. The Delivery creates various Model from request data
-3. The Delivery calls Use Case, and execute it using Model data
-4. The Use Case create Entity data for the business logic
-5. The Use Case calls Repository, and execute it using Entity data
-6. The Repository use Entity data to perform database operation
-7. The Repository perform database operation to the database
-8. The Use Case create various Model for Gateway or from Entity data
-9. The Use Case calls Gateway, and execute it using Model data
-10. The Gateway using Model data to construct request to external system
-11. The Gateway perform request to external system (HTTP, gRPC, Messaging, etc)
+- **Entity** — Core business objects (user, contact, address, refresh token)
+- **Use Case** — Business logic orchestration
+- **Repository** — Database operations via GORM (MySQL)
+- **Delivery** — Incoming request handlers (HTTP / Messaging)
+- **Model** — Request/response DTOs and event schemas
+- **Gateway** — Outbound communication to external systems (Kafka messaging)
 
 ## Tech Stack
 
-- Golang : https://github.com/golang/go
-- MySQL (Database) : https://github.com/mysql/mysql-server
-- Apache Kafka : https://github.com/apache/kafka
+| Category | Library |
+|----------|--------|
+| HTTP Framework | [Fiber v2](https://github.com/gofiber/fiber) |
+| ORM | [GORM](https://github.com/go-gorm/gorm) |
+| Database | [MySQL 8](https://www.mysql.com/) |
+| Cache / Auth Store | [Redis](https://redis.io/) |
+| Message Broker | [Apache Kafka](https://kafka.apache.org/) (Confluent Go client) |
+| Auth | JWT (access + refresh tokens) |
+| Validation | [go-playground/validator](https://github.com/go-playground/validator) |
+| Logger | [Logrus](https://github.com/sirupsen/logrus) |
+| Config | [godotenv](https://github.com/joho/godotenv) (`.env`) |
+| Test | [testify](https://github.com/stretchr/testify) |
+| Migration | [golang-migrate](https://github.com/golang-migrate/migrate) |
+| Hot Reload | [air](https://github.com/air-verse/air) |
 
-## Framework & Library
+## Project Structure
 
-- GoFiber (HTTP Framework) : https://github.com/gofiber/fiber
-- GORM (ORM) : https://github.com/go-gorm/gorm
-- Viper (Configuration) : https://github.com/spf13/viper
-- Golang Migrate (Database Migration) : https://github.com/golang-migrate/migrate
-- Go Playground Validator (Validation) : https://github.com/go-playground/validator
-- Logrus (Logger) : https://github.com/sirupsen/logrus
-- Confluent Kafka Golang : https://github.com/confluentinc/confluent-kafka-go
-
-## Configuration
-
-All configuration is in `config.json` file.
-
-## API Spec
-
-All API Spec is in `api` folder.
-
-## Database Migration
-
-All database migration is in `db/migrations` folder.
-
-### Create Migration
-
-```shell
-migrate create -ext sql -dir db/migrations create_table_xxx
+```
+├── api/                   # API specification
+├── cmd/
+│   ├── web/main.go        # HTTP server entry point
+│   └── worker/main.go     # Kafka consumer entry point
+├── db/migrations/         # SQL migration files
+├── internal/
+│   ├── config/            # App, Fiber, GORM, Redis, Kafka, Logger configs
+│   ├── delivery/
+│   │   ├── http/          # HTTP handlers (Fiber)
+│   │   └── messaging/     # Kafka message handlers
+│   ├── entity/            # Core domain entities
+│   ├── gateway/messaging/ # Kafka producer
+│   ├── model/             # DTOs, event schemas, converters
+│   ├── repository/        # GORM repository implementations
+│   ├── usecase/           # Business logic layer
+│   └── util/              # Shared utilities
+└── test/                  # Integration / E2E tests
 ```
 
-### Run Migration
+## Quick Start
 
-```shell
+### Prerequisites
+
+- Go 1.24+
+- Docker & Docker Compose (for MySQL, Redis, Kafka)
+
+### Setup
+
+```bash
+# Clone and enter the project
+git clone <repo-url> && cd golang-clean-architecture
+
+# Copy environment config
+cp .env.example .env
+
+# Start infrastructure (MySQL, Redis, Kafka)
+docker compose -f docker-compose.dev.yml up -d mysql redis kafka
+
+# Run database migrations
 migrate -database "mysql://root:@tcp(localhost:3306)/golang-clean-architecture?charset=utf8mb4&parseTime=True&loc=Local" -path db/migrations up
+
+# Start web server (with hot reload)
+docker compose -f docker-compose.dev.yml up web
+
+# Or run directly
+go run cmd/web/main.go
 ```
 
-## Run Application
-
-### Run unit test
+### Run Tests
 
 ```bash
 go test -v ./test/
 ```
 
-### Run web server
+## API
+
+Full API spec available at `api/api-spec.json`.
+
+## Database Migrations
 
 ```bash
-go run cmd/web/main.go
+# Create a new migration
+migrate create -ext sql -dir db/migrations create_table_xxx
+
+# Run all pending migrations
+migrate -database "mysql://root:@tcp(localhost:3306)/golang-clean-architecture?charset=utf8mb4&parseTime=True&loc=Local" -path db/migrations up
+
+# Rollback
+migrate -database "mysql://root:@tcp(localhost:3306)/golang-clean-architecture?charset=utf8mb4&parseTime=True&loc=Local" -path db/migrations down
 ```
 
-### Run worker
+## Architecture Flow
 
-```bash
-go run cmd/worker/main.go
 ```
+HTTP Request / Kafka Message
+        │
+        ▼
+   Delivery (handler)
+        │
+        ▼
+   Use Case (business logic)
+        │
+        ├──► Entity
+        ├──► Repository ──► MySQL
+        └──► Gateway ──► Kafka (external)
+```
+
+## License
+
+MIT
